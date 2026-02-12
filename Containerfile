@@ -12,7 +12,7 @@ RUN curl -L https://apt.armbian.com/armbian.key | gpg --dearmor > /usr/share/key
 
 RUN --mount=type=tmpfs,dst=/tmp --mount=type=tmpfs,dst=/root --mount=type=tmpfs,dst=/boot apt update -y && \
   apt install -y btrfs-progs dosfstools e2fsprogs fdisk armbian-firmware skopeo systemd systemd-boot* xfsprogs && \
-  cp /boot/vmlinuz-* "$(find /usr/lib/modules -maxdepth 1 -type d | tail -n 1)/vmlinuz" && \
+  #cp /boot/vmlinuz-* "$(find /usr/lib/modules -maxdepth 1 -type d | tail -n 1)/vmlinuz" && \
   apt clean -y
 
 # Setup a temporary root passwd (changeme) for dev purposes
