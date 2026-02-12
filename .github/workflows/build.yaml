@@ -16,3 +16,4 @@ jobs:
         with:
           armbian_board: renegade
           armbian_release: questing
+          armbian_target: image
