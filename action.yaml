@@ -101,7 +101,9 @@ runs:
         ./compile.sh inventory-boards
         ./compile.sh targets
 
-        cat info/boards-inventory.csv
+        find
+
+        cat output/info/boards-inventory.csv
 
     - shell: bash
       run: |
