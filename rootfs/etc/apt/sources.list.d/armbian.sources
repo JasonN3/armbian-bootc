@@ -1,0 +1,5 @@
+Types: deb
+URIs: https://apt.armbian.com
+Suites: noble
+Components: main noble-utils noble-desktop
+Signed-By: /usr/share/keyrings/armbian.gpg

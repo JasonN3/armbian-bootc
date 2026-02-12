@@ -1,19 +1,105 @@
-name: "Build the images"
+name: Build Container
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
   pull_request:
+    branches:
+      - main
 
 jobs:
-  run_action:
-    runs-on: ubuntu-latest
+  build-container:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-24.04
+          - ubuntu-24.04-arm
+        include:
+          - os: ubuntu-24.04
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+    name: Build Container Image
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      packages: write
     steps:
-      - name: Check out repository
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Build Image
-        uses: ./.
         with:
-          armbian_board: renegade
-          armbian_release: questing
-          armbian_target: image
+          submodules: recursive
+          fetch-depth: 0
+          fetch-tags: 'true'
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          flavor: |
+            suffix=-${{ matrix.arch }}
+          images: |
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern=v{{version}}
+            type=semver,pattern=v{{major}}.{{minor}}
+            type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
+
+      - name: Buildah Build
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          containerfiles: Containerfile
+          tags: ${{ steps.meta.outputs.tags || steps.meta_pr.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels || steps.meta_pr.outputs.labels }}
+
+      - name: Push image
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+  combine-tags:
+    name: Combine Tags
+    runs-on: ubuntu-24.04
+    needs: build-container
+    permissions:
+      packages: write
+    steps:
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern=v{{version}}
+            type=semver,pattern=v{{major}}.{{minor}}
+            type=semver,pattern=v{{major}}.{{minor}}.{{patch}}
+
+      - name: Generate manifest
+        run: |
+          for tag in ${{ steps.meta.outputs.tags }}
+          do
+            podman manifest create ${tag}
+            podman manifest add ${tag} \
+              docker://${tag}-amd64 \
+              --arch amd64
+            podman manifest add ${tag} \
+              docker://${tag}-arm64 \
+              --arch arm64
+          done
+      - name: Push manifest
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ghcr.io/${{ github.repository }}
+          tags: ${{ steps.meta.outputs.tags }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
