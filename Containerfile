@@ -1,38 +1,75 @@
+FROM docker.io/library/ubuntu:questing AS bootc-builder
+
+ENV CARGO_HOME=/tmp/rust
+ENV RUSTUP_HOME=/tmp/rust
+
+RUN \
+  --mount=type=tmpfs,dst=/tmp \
+  --mount=type=tmpfs,dst=/root \
+  --mount=type=tmpfs,dst=/boot \
+    apt update -y && \
+    apt install -y \
+      git \
+      curl \
+      make \
+      build-essential \
+      go-md2man \
+      libzstd-dev \
+      pkgconf \
+      dracut \
+      libostree-dev \
+      ostree && \
+    curl --proto '=https' --tlsv1.2 -sSf "https://sh.rustup.rs" | sh -s -- --profile minimal -y && \
+    git clone "https://github.com/bootc-dev/bootc.git" /tmp/bootc && \
+    mkdir /bootc && \
+    . ${RUSTUP_HOME}/env && \
+    make -C /tmp/bootc bin install-all DESTDIR=/bootc
+
 FROM docker.io/library/ubuntu:questing
 
 ARG DEBIAN_FRONTEND=noninteractive
 
 COPY rootfs/ /
+COPY --from bootc-builder /bootc/ /
 
-RUN --mount=type=tmpfs,dst=/tmp --mount=type=tmpfs,dst=/root --mount=type=tmpfs,dst=/boot apt update -y && \
-    apt install -y curl gpg && \
+RUN \
+  --mount=type=tmpfs,dst=/tmp \
+  --mount=type=tmpfs,dst=/root \
+  --mount=type=tmpfs,dst=/boot \
+    apt update -y && \
+    apt install -y \
+      curl \
+      gpg \
+      dracut \
+      ostree && \
     apt clean -y
 
 RUN curl -L https://apt.armbian.com/armbian.key | gpg --dearmor > /usr/share/keyrings/armbian.gpg
 
-RUN --mount=type=tmpfs,dst=/tmp --mount=type=tmpfs,dst=/root --mount=type=tmpfs,dst=/boot apt update -y && \
-  apt install -y btrfs-progs dosfstools e2fsprogs fdisk armbian-firmware skopeo systemd systemd-boot* xfsprogs && \
-  #cp /boot/vmlinuz-* "$(find /usr/lib/modules -maxdepth 1 -type d | tail -n 1)/vmlinuz" && \
-  apt clean -y
+RUN \
+  --mount=type=tmpfs,dst=/tmp \
+  --mount=type=tmpfs,dst=/root \
+  --mount=type=tmpfs,dst=/boot \
+    apt update -y && \
+    apt install -y \
+      btrfs-progs \
+      dosfstools \
+      e2fsprogs \
+      fdisk \
+      armbian-firmware \
+      linux-image-generic \
+      skopeo \
+      systemd \
+      systemd-boot* \
+      xfsprogs && \
+    cp /boot/vmlinuz-* "$(find /usr/lib/modules -maxdepth 1 -type d | tail -n 1)/vmlinuz" && \
+    apt clean -y
 
 # Setup a temporary root passwd (changeme) for dev purposes
 # RUN apt update -y && apt install -y whois
 # RUN usermod -p "$(echo "changeme" | mkpasswd -s)" root
-
-ENV CARGO_HOME=/tmp/rust
-ENV RUSTUP_HOME=/tmp/rust
-RUN --mount=type=tmpfs,dst=/tmp --mount=type=tmpfs,dst=/root --mount=type=tmpfs,dst=/boot \
-    apt update -y && \
-    apt install -y git curl make build-essential go-md2man libzstd-dev pkgconf dracut libostree-dev ostree && \
-    curl --proto '=https' --tlsv1.2 -sSf "https://sh.rustup.rs" | sh -s -- --profile minimal -y && \
-    git clone "https://github.com/bootc-dev/bootc.git" /tmp/bootc && \
-    sh -c ". ${RUSTUP_HOME}/env ; make -C /tmp/bootc bin install-all" && \
-    printf "systemdsystemconfdir=/etc/systemd/system\nsystemdsystemunitdir=/usr/lib/systemd/system\n" | tee "/usr/lib/dracut/dracut.conf.d/30-bootcrew-fix-bootc-module.conf" && \
-    printf 'reproducible=yes\nhostonly=no\ncompress=zstd\nadd_dracutmodules+=" bootc "' | tee "/usr/lib/dracut/dracut.conf.d/30-bootcrew-bootc-container-build.conf" && \
-    dracut --force "$(find /usr/lib/modules -maxdepth 1 -type d | tail -n 1)/initramfs.img" && \
-    apt purge -y git curl make build-essential go-md2man libzstd-dev pkgconf libostree-dev && \
-    apt autoremove -y && \
-    apt clean -y
+    
+RUN dracut --force "$(find /usr/lib/modules -maxdepth 1 -type d | tail -n 1)/initramfs.img" && \
 
 # Necessary for general behavior expected by image-based systems
 RUN echo "HOME=/var/home" | tee -a "/etc/default/useradd" && \

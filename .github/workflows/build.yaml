@@ -13,11 +13,11 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-24.04
+          # - ubuntu-24.04
           - ubuntu-24.04-arm
         include:
-          - os: ubuntu-24.04
-            arch: amd64
+          # - os: ubuntu-24.04
+          #   arch: amd64
           - os: ubuntu-24.04-arm
             arch: arm64
     name: Build Container Image
