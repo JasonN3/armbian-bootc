@@ -30,7 +30,7 @@ FROM docker.io/library/ubuntu:questing
 ARG DEBIAN_FRONTEND=noninteractive
 
 COPY rootfs/ /
-COPY --from bootc-builder /bootc/ /
+COPY --from=bootc-builder /bootc/ /
 
 RUN \
   --mount=type=tmpfs,dst=/tmp \
