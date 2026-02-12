@@ -6,4 +6,4 @@ on:
 
 jobs:
   run_action:
-    uses: ./action.yaml
+    uses: ./.
