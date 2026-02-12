@@ -94,17 +94,6 @@ runs:
           rsync -av custom/userpatches/. build/userpatches/
         fi
 
-    - name: Display boards
-      shell: bash
-      run: |
-        cd build
-        ./compile.sh inventory-boards
-        ./compile.sh targets
-
-        find
-
-        cat output/info/boards-inventory.csv
-
     - shell: bash
       run: |
 

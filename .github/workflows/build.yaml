@@ -13,3 +13,6 @@ jobs:
 
       - name: Build Image
         uses: ./.
+        with:
+          armbian_board: renegade
+          armbian_release: questing
