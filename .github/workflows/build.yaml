@@ -6,4 +6,6 @@ on:
 
 jobs:
   run_action:
-    uses: ./.
+    steps:
+      - name: Build Image
+        uses: ./.
