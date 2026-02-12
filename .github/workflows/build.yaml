@@ -6,6 +6,7 @@ on:
 
 jobs:
   run_action:
+    runs-on: ubuntu-latest
     steps:
       - name: Build Image
         uses: ./.
