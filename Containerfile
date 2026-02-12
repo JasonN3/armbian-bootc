@@ -8,7 +8,7 @@ RUN --mount=type=tmpfs,dst=/tmp --mount=type=tmpfs,dst=/root --mount=type=tmpfs,
     apt install -y curl gpg && \
     apt clean -y
 
-RUN curl https://apt.armbian.com/armbian.key | gpg --dearmor > /usr/share/keyrings/armbian.gpg
+RUN curl -L https://apt.armbian.com/armbian.key | gpg --dearmor > /usr/share/keyrings/armbian.gpg
 
 RUN --mount=type=tmpfs,dst=/tmp --mount=type=tmpfs,dst=/root --mount=type=tmpfs,dst=/boot apt update -y && \
   apt install -y btrfs-progs dosfstools e2fsprogs fdisk armbian-firmware skopeo systemd systemd-boot* xfsprogs && \
